@@ -53,6 +53,10 @@ Select **both locations from the Google autocomplete suggestions**, choose 30, 5
 - Drag inside Street View to look around; the next view resets the camera heading toward the next route sample. Use the expand button for fullscreen, where the map and controls remain available.
 - ETA is the **estimated real driving duration remaining**, not a countdown for preview playback. Progress and remaining distance are approximations based on distance along the route geometry, scaled to Google's reported route distance.
 
+## Responsive layout
+
+The UI adapts to viewport width rather than detecting device models: full-width phone inputs below 700 px, a full-width viewer with a two-column search layout on 700–1023 px tablets, and a sidebar on larger screens. Short landscape windows have a compact layout. Controls have at least 44 px touch targets, location inputs and selects use 16 px text, fullscreen uses dynamic viewport height, and safe-area insets reserve space for notches and home indicators. Dialogs scroll inside short windows. Representative phone, tablet, landscape, and desktop viewports are checked in the browser; physical iOS and Android hardware testing is still recommended.
+
 ## Structure
 
 ```text
@@ -64,6 +68,7 @@ src/
     RouteSearch.vue              Places widgets and route form
     RouteMap.vue                 Polyline and moving marker
     StreetViewPlayer.vue         One reusable interactive panorama
+    VehicleCockpit.vue           Optional illustrated car/bike viewpoints
     PlaybackControls.vue         Playback and manual navigation controls
     TripStats.vue                Distance, duration, and progress
   composables/
@@ -81,6 +86,8 @@ src/
 ```
 
 ## Design and request efficiency
+
+The viewer’s **View** selector offers Street View (default), Car cockpit, and Bike cockpit. Car reserves the lower half of the viewer for an illustrated dashboard and steering wheel; Bike places fully framed mirrors, handlebars, and a tank over the road on a transparent background. These are optional visual viewpoints, not vehicle-specific routes: routing remains driving. Car adds a subtle, non-interactive windshield reflection and resizes the panorama above its dashboard. On phones the dashboard is framed around the steering wheel, aligning it with the road view, and the smaller map moves above the dashboard. This visual framing cannot physically reposition Google’s fixed Street View capture camera. Bike keeps the panorama full size, fits the complete cockpit within the viewport, and leaves the bottom attribution strip clear. Switching viewpoints reuses the same panorama, with no additional route or panorama lookup requests. Map and playback controls remain available, including in fullscreen.
 
 - Vue refs and a single `useTrip` composable are sufficient for this MVP; Pinia would add little value.
 - Autocomplete selections supply a Place ID and prediction label directly. No extra Place Details or geocoding request is made.

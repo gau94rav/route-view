@@ -16,6 +16,8 @@ import {
 } from "../utils/panoramaTransition";
 import { distanceBetween, headingBetween } from "../utils/geometry";
 import type { Coordinate, PanoramaStep } from "../types";
+import VehicleCockpit from "./VehicleCockpit.vue";
+const previewMode = ref<"street" | "car" | "bike">("street");
 const props = defineProps<{
   current: PanoramaStep | null;
   nextViewPosition: Coordinate | null;
@@ -45,6 +47,7 @@ let panorama: google.maps.StreetViewPanorama | undefined,
   disposed = false;
 let gate: ReturnType<typeof createPanoramaReadinessGate> | undefined;
 let statusListener: google.maps.MapsEventListener | undefined;
+let resizeObserver: ResizeObserver | undefined;
 function clearReadiness() {
   gate?.dispose();
   gate = undefined;
@@ -179,6 +182,10 @@ onMounted(async () => {
     panorama.addListener("pov_changed", () => {
       cameraHeading.value = panorama?.getPov().heading ?? 0;
     });
+    resizeObserver = new ResizeObserver(() => {
+      if (panorama) google.maps.event.trigger(panorama, "resize");
+    });
+    resizeObserver.observe(host.value);
     cameraHeading.value = panorama.getPov().heading;
     show();
   } catch {
@@ -193,6 +200,7 @@ onBeforeUnmount(() => {
   disposed = true;
   clearReadiness();
   cancelMotion();
+  resizeObserver?.disconnect();
   document.removeEventListener("fullscreenchange", syncFullscreen);
   if (panorama) {
     panorama.setVisible(false);
@@ -204,9 +212,11 @@ onBeforeUnmount(() => {
   <section
     ref="panel"
     class="viewer"
+    :class="`viewer--${previewMode}`"
     aria-label="Interactive Street View player"
   >
     <div ref="host" class="panorama" />
+    <VehicleCockpit v-if="previewMode !== 'street'" :mode="previewMode" />
     <div v-if="!current" class="viewer-empty">
       <div class="landscape" aria-hidden="true">
         <div class="sun" />
@@ -233,12 +243,26 @@ onBeforeUnmount(() => {
         ILLUSTRATION · YOUR STREET VIEW WILL APPEAR HERE
       </div>
     </div>
+    <div
+      v-if="previewMode === 'car'"
+      class="windshield-reflection"
+      aria-hidden="true"
+    />
     <div class="viewer-top">
       <span class="viewer-tag"
         ><span class="live-dot" />{{
           current ? "STREET VIEW" : "VIRTUAL DRIVE"
         }}</span
-      ><button
+      >
+      <label class="preview-mode">
+        <span>View</span>
+        <select v-model="previewMode" aria-label="Preview viewpoint">
+          <option value="street">Street View</option>
+          <option value="car">Car cockpit</option>
+          <option value="bike">Bike cockpit</option>
+        </select>
+      </label>
+      <button
         class="glass-button"
         :disabled="!current"
         :aria-label="full ? 'Exit fullscreen' : 'Enter fullscreen'"
