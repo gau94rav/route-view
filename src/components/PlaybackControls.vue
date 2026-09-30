@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { Play, Pause, RotateCcw, SkipBack, SkipForward } from "@lucide/vue";
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  SkipBack,
+  SkipForward,
+  Map as MapIcon,
+} from "@lucide/vue";
 defineProps<{
   playing: boolean;
   busy: boolean;
   enabled: boolean;
   canPrevious: boolean;
   ended: boolean;
+  mapVisible: boolean;
 }>();
 const emit = defineEmits<{
   play: [];
@@ -13,6 +21,7 @@ const emit = defineEmits<{
   restart: [];
   previous: [];
   next: [];
+  toggleMap: [];
 }>();
 </script>
 <template>
@@ -51,6 +60,14 @@ const emit = defineEmits<{
       @click="emit('next')"
     >
       <SkipForward :size="18" />
+    </button>
+    <button
+      :aria-label="mapVisible ? 'Hide minimap' : 'Show minimap'"
+      :title="mapVisible ? 'Hide minimap' : 'Show minimap'"
+      :aria-pressed="mapVisible"
+      @click="emit('toggleMap')"
+    >
+      <MapIcon :size="18" />
     </button>
   </div>
 </template>

@@ -7,6 +7,7 @@ import {
   Minimize2,
   ArrowUpRight,
   LoaderCircle,
+  Eye,
 } from "@lucide/vue";
 import { hasApiKey, loadGoogleMaps } from "../services/googleMapsLoader";
 import { createPanoramaReadinessGate } from "../utils/panoramaReadiness";
@@ -17,7 +18,24 @@ import {
 import { distanceBetween, headingBetween } from "../utils/geometry";
 import type { Coordinate, PanoramaStep } from "../types";
 import VehicleCockpit from "./VehicleCockpit.vue";
+import { enterNativeFullscreen } from "../utils/fullscreen";
 const previewMode = ref<"street" | "car" | "bike">("street");
+const mapVisible = ref(true);
+const expanded = ref(false);
+let previousOverflow = "";
+function toggleMap() {
+  mapVisible.value = !mapVisible.value;
+}
+watch(expanded, (value) => {
+  if (value) {
+    previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  } else document.body.style.overflow = previousOverflow;
+  syncFullscreen();
+});
+function escapeExpanded(event: KeyboardEvent) {
+  if (event.key === "Escape") expanded.value = false;
+}
 const props = defineProps<{
   current: PanoramaStep | null;
   nextViewPosition: Coordinate | null;
@@ -140,21 +158,26 @@ async function show() {
   }
 }
 const syncFullscreen = () => {
-  full.value = document.fullscreenElement === panel.value;
+  full.value = expanded.value || document.fullscreenElement === panel.value;
 };
 async function fullscreen() {
+  if (expanded.value) {
+    expanded.value = false;
+    return;
+  }
   try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await panel.value?.requestFullscreen();
+    if (document.fullscreenElement === panel.value)
+      await document.exitFullscreen();
+    else if (panel.value)
+      expanded.value = !(await enterNativeFullscreen(panel.value));
   } catch {
-    emit(
-      "error",
-      "Fullscreen is unavailable in this browser. You can still explore in the main viewer.",
-    );
+    // Some phone browsers reject element fullscreen; expand within the viewport.
+    expanded.value = true;
   }
 }
 onMounted(async () => {
   document.addEventListener("fullscreenchange", syncFullscreen);
+  document.addEventListener("keydown", escapeExpanded);
   if (!hasApiKey) return;
   try {
     await loadGoogleMaps();
@@ -202,6 +225,8 @@ onBeforeUnmount(() => {
   cancelMotion();
   resizeObserver?.disconnect();
   document.removeEventListener("fullscreenchange", syncFullscreen);
+  document.removeEventListener("keydown", escapeExpanded);
+  if (expanded.value) document.body.style.overflow = previousOverflow;
   if (panorama) {
     panorama.setVisible(false);
     google.maps.event.clearInstanceListeners(panorama);
@@ -212,7 +237,10 @@ onBeforeUnmount(() => {
   <section
     ref="panel"
     class="viewer"
-    :class="`viewer--${previewMode}`"
+    :class="[
+      `viewer--${previewMode}`,
+      { 'viewer--expanded': expanded, 'viewer--map-hidden': !mapVisible },
+    ]"
     aria-label="Interactive Street View player"
   >
     <div ref="host" class="panorama" />
@@ -249,13 +277,8 @@ onBeforeUnmount(() => {
       aria-hidden="true"
     />
     <div class="viewer-top">
-      <span class="viewer-tag"
-        ><span class="live-dot" />{{
-          current ? "STREET VIEW" : "VIRTUAL DRIVE"
-        }}</span
-      >
       <label class="preview-mode">
-        <span>View</span>
+        <Eye :size="20" aria-hidden="true" />
         <select v-model="previewMode" aria-label="Preview viewpoint">
           <option value="street">Street View</option>
           <option value="car">Car cockpit</option>
@@ -264,7 +287,6 @@ onBeforeUnmount(() => {
       </label>
       <button
         class="glass-button"
-        :disabled="!current"
         :aria-label="full ? 'Exit fullscreen' : 'Enter fullscreen'"
         @click="fullscreen"
       >
@@ -289,6 +311,6 @@ onBeforeUnmount(() => {
       /></span>
       <span>Next view</span>
     </div>
-    <slot />
+    <slot :map-visible="mapVisible" :toggle-map="toggleMap" />
   </section>
 </template>

@@ -13,6 +13,7 @@ let map: google.maps.Map | undefined,
   polyline: google.maps.Polyline | undefined,
   marker: google.maps.Marker | undefined,
   disposed = false;
+let resizeObserver: ResizeObserver | undefined;
 function draw() {
   if (!map) return;
   polyline?.setMap(null);
@@ -56,6 +57,13 @@ onMounted(async () => {
       gestureHandling: "cooperative",
       styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }],
     });
+    resizeObserver = new ResizeObserver(() => {
+      if (!map || !host.value?.clientWidth || !host.value.clientHeight) return;
+      const center = map.getCenter();
+      google.maps.event.trigger(map, "resize");
+      if (center) map.setCenter(center);
+    });
+    resizeObserver.observe(host.value);
     draw();
   } catch {
     failure.value = true;
@@ -73,6 +81,7 @@ watch(
 );
 onBeforeUnmount(() => {
   disposed = true;
+  resizeObserver?.disconnect();
   polyline?.setMap(null);
   marker?.setMap(null);
   if (map) google.maps.event.clearInstanceListeners(map);

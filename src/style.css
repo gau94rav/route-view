@@ -550,10 +550,11 @@ gmp-place-autocomplete {
   letter-spacing: 0.12em;
 }
 .preview-mode {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
+  margin-left: 0;
   margin-right: 10px;
   min-height: 44px;
   padding: 0 12px;
@@ -1555,5 +1556,53 @@ gmp-place-autocomplete::part(input) {
   *:after {
     animation-duration: 0s !important;
     transition: none !important;
+  }
+}
+
+.viewer--map-hidden {
+  --controls-left: 50%;
+}
+.playback button[aria-pressed="true"] {
+  color: var(--green);
+  background: #edf3e9;
+}
+.viewer--expanded {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  border-radius: 0;
+  z-index: 1000;
+  overscroll-behavior: contain;
+  --overlay-inset: max(
+    16px,
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
+}
+@media (max-width: 699px) {
+  .preview-mode {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .preview-mode select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    padding: 0;
+  }
+  .preview-mode:focus-within {
+    outline: 2px solid #527d61;
+    outline-offset: 2px;
+  }
+  .playback {
+    gap: 4px;
+    padding-inline: 6px;
   }
 }
