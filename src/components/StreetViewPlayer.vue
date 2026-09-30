@@ -20,7 +20,72 @@ import type { Coordinate, PanoramaStep } from "../types";
 import VehicleCockpit from "./VehicleCockpit.vue";
 import { enterNativeFullscreen } from "../utils/fullscreen";
 const previewMode = ref<"street" | "car" | "bike">("street");
-const mapVisible = ref(true);
+const mapVisible = ref(!isPhoneViewport());
+const controlsVisible = ref(true);
+function isPhoneViewport() {
+  const phoneViewport = document.documentElement.clientWidth <= 699;
+  const touchLandscape =
+    window.matchMedia("(pointer: coarse)").matches &&
+    Math.min(window.innerWidth, window.innerHeight) <= 699;
+  return phoneViewport || touchLandscape;
+}
+function hidePlaybackControls() {
+  if (isPhoneViewport()) controlsVisible.value = false;
+}
+let tapStart: { id: number; x: number; y: number; time: number } | undefined;
+function phoneInteraction(event: PointerEvent) {
+  return (
+    document.documentElement.clientWidth <= 699 ||
+    (event.pointerType === "touch" &&
+      Math.min(window.innerWidth, window.innerHeight) <= 699)
+  );
+}
+function isControl(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        "button, a, input, select, label, [role='button'], .playback, .mini-map, .viewer-top, .viewer-notice",
+      ),
+    )
+  );
+}
+function beginTap(event: PointerEvent) {
+  tapStart = undefined;
+  if (
+    !event.isPrimary ||
+    event.button !== 0 ||
+    !phoneInteraction(event) ||
+    isControl(event.target)
+  )
+    return;
+  tapStart = {
+    id: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    time: event.timeStamp,
+  };
+}
+function moveTap(event: PointerEvent) {
+  if (
+    tapStart?.id === event.pointerId &&
+    Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) > 10
+  )
+    tapStart = undefined;
+}
+function finishTap(event: PointerEvent) {
+  const start = tapStart;
+  tapStart = undefined;
+  if (
+    !start ||
+    start.id !== event.pointerId ||
+    isControl(event.target) ||
+    event.timeStamp - start.time > 500 ||
+    Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10
+  )
+    return;
+  controlsVisible.value = !controlsVisible.value;
+}
 const expanded = ref(false);
 let previousOverflow = "";
 function toggleMap() {
@@ -239,9 +304,17 @@ onBeforeUnmount(() => {
     class="viewer"
     :class="[
       `viewer--${previewMode}`,
-      { 'viewer--expanded': expanded, 'viewer--map-hidden': !mapVisible },
+      {
+        'viewer--expanded': expanded,
+        'viewer--map-hidden': !mapVisible,
+        'viewer--controls-hidden': !controlsVisible,
+      },
     ]"
     aria-label="Interactive Street View player"
+    @pointerdown.capture="beginTap"
+    @pointermove.capture="moveTap"
+    @pointerup.capture="finishTap"
+    @pointercancel.capture="tapStart = undefined"
   >
     <div ref="host" class="panorama" />
     <VehicleCockpit v-if="previewMode !== 'street'" :mode="previewMode" />
@@ -311,6 +384,10 @@ onBeforeUnmount(() => {
       /></span>
       <span>Next view</span>
     </div>
-    <slot :map-visible="mapVisible" :toggle-map="toggleMap" />
+    <slot
+      :map-visible="mapVisible"
+      :toggle-map="toggleMap"
+      :hide-playback-controls="hidePlaybackControls"
+    />
   </section>
 </template>

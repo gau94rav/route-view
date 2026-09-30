@@ -507,7 +507,7 @@ gmp-place-autocomplete {
 }
 .vehicle-cockpit--bike {
   background: transparent;
-  bottom: 24px;
+  bottom: 0;
   z-index: 3;
 }
 .vehicle-cockpit--bike .cockpit-caption {
@@ -939,6 +939,9 @@ gmp-place-autocomplete {
 }
 .playback {
   position: absolute;
+  transition:
+    opacity 150ms ease,
+    visibility 150ms ease;
   bottom: var(--controls-bottom);
   left: var(--controls-left);
   transform: translateX(-50%);
@@ -1604,5 +1607,17 @@ gmp-place-autocomplete::part(input) {
   .playback {
     gap: 4px;
     padding-inline: 6px;
+  }
+  .viewer--controls-hidden .playback {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+@media (max-height: 699px) and (pointer: coarse) {
+  .viewer--controls-hidden .playback {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 }

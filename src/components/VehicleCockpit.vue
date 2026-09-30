@@ -128,7 +128,7 @@ onBeforeUnmount(() => framingObserver?.disconnect());
       />
       <path d="M224 238h28" stroke="#a3c1b6" stroke-width="3" />
     </svg>
-    <svg v-else viewBox="70 0 860 370" preserveAspectRatio="xMidYMax meet">
+    <svg v-else viewBox="70 0 860 355" preserveAspectRatio="xMidYMax meet">
       <defs>
         <linearGradient id="bike-tank" x2="0" y2="1">
           <stop stop-color="#365956" />

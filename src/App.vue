@@ -115,7 +115,7 @@ const helpDialog = ref<HTMLDialogElement>();
           </button>
         </div>
         <StreetViewPlayer
-          v-slot="{ mapVisible, toggleMap }"
+          v-slot="{ mapVisible, toggleMap, hidePlaybackControls }"
           :current="current"
           :next-view-position="nextViewPosition"
           :busy="loadingPanorama || renderingPanorama"
@@ -138,7 +138,10 @@ const helpDialog = ref<HTMLDialogElement>();
             :enabled="!!route"
             :can-previous="currentIndex > 0"
             :ended="ended"
-            @play="play"
+            @play="
+              play();
+              hidePlaybackControls();
+            "
             @pause="pause"
             @restart="restart"
             @previous="previous"
